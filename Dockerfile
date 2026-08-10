@@ -1,23 +1,25 @@
+# 1. Compilar anki-sync-server desde el repositorio oficial de Anki
+FROM rust:latest AS builder
+
+RUN git clone --depth 1 https://github.com/ankitects/anki.git /app \
+    && cd /app \
+    && cargo build --release -p anki-sync-server
+
+# 2. Crear la imagen final ligera
 FROM debian:bookworm-slim
 
-# Instalar dependencias del sistema, zstd, fuse3 y rclone
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     curl \
-    zstd \
     fuse3 \
     unzip \
     && curl https://rclone.org/install.sh | bash \
     && rm -rf /var/lib/apt/lists/*
 
-# Descargar la última versión del servidor oficial de Anki para Linux
-ENV ANKI_VERSION=24.06.3
-RUN curl -L https://github.com/ankitects/anki/releases/download/${ANKI_VERSION}/anki-${ANKI_VERSION}-linux-x86_64-cli.tar.zst -o anki.tar.zst \
-    && tar --use-compress-program=unzstd -xvf anki.tar.zst \
-    && cp anki-${ANKI_VERSION}-linux-x86_64-cli/anki-sync-server /usr/local/bin/ \
-    && rm -rf anki.tar.zst anki-${ANKI_VERSION}-linux-x86_64-cli
+# Copiar el binario recién compilado
+COPY --from=builder /app/target/release/anki-sync-server /usr/local/bin/
 
-# Habilitar FUSE para Rclone
+# Habilitar FUSE
 RUN sed -i 's/#user_allow_other/user_allow_other/g' /etc/fuse.conf
 
 WORKDIR /app
