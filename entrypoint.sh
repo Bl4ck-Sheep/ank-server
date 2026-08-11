@@ -40,4 +40,4 @@ export SYNC_USER1="${ANKI_SYNC_USER}"
 export SYNC_PORT=10000
 export SYNC_BASE=/data
 
-exec anki-sync-server
+exec python -m anki.syncserver
