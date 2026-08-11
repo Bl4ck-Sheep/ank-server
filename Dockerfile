@@ -1,16 +1,4 @@
-# 1. Compilar anki-sync-server desde el repositorio oficial de Anki
-FROM rust:latest AS builder
-
-# Instalar el compilador de Protocol Buffers requerido por el backend de Anki
-RUN apt-get update && apt-get install -y protobuf-compiler
-
-# Clonar incluyendo submódulos necesarios para traducciones (ftl)
-RUN git clone --depth 1 --recurse-submodules https://github.com/ankitects/anki.git /app \
-    && cd /app \
-    && cargo build --release -p anki-sync-server
-
-# 2. Crear la imagen final ligera
-FROM debian:bookworm-slim
+FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y \
     ca-certificates \
@@ -20,8 +8,8 @@ RUN apt-get update && apt-get install -y \
     && curl https://rclone.org/install.sh | bash \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar el binario recién compilado
-COPY --from=builder /app/target/release/anki-sync-server /usr/local/bin/
+# Instalar el servidor oficial mediante el gestor de paquetes de Python
+RUN pip install --no-cache-dir anki
 
 # Habilitar FUSE para Rclone
 RUN sed -i 's/#user_allow_other/user_allow_other/g' /etc/fuse.conf
